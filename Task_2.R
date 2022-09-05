@@ -150,3 +150,32 @@ print(paste(' Accuracy =', 1-misClassError, ' precision = ',precision, ' recall 
 # Using feature selection technique has improved accuracy of the model significantly 
 # in comparison Reproduction of the original study.
 # Further more precision and recall have a high positive change 
+
+# Using Naive Bayes Algorithm
+
+nb_model <- naiveBayes(class ~ ., data = train)
+nb_model
+
+prediction <- predict(nb_model, newdata = test[-11])
+
+cm <- table(test$class, prediction)
+cm
+
+# Accuracy of Naive Bayes
+
+correct_values <- cm[1,1]+cm[2,2]
+total_values <- correct_values + cm[1,2] + cm[2,1]
+
+acc <- correct_values/total_values
+print(paste('Accuracy = ', acc))
+
+# Accuracy is around 97 % which is almost equal to the one in Original Study.
+
+
+#   Area of improvements
+# - Used Cross Validation Techniques and Feature selection techniques which improved our results drastically.
+# - For KNN model Not only accuracy improved but precision and recall took a major leap.
+#   Suggestion
+# - It is also suggested to use Logistic regression for this problem as that ML model also give good stats in this case.
+# - Better if we use KNN model here with features selected for it. For Naive Bayes feature selection haven't put any change here
+
