@@ -94,3 +94,59 @@ missing_classerr <- mean(predict_reg != test$class)
 print(paste('Accuracy =', 1 - missing_classerr))
 
 # Accuracy is around 96 % which is high and was not utilized in the original study
+
+
+
+####### KNN model   ##########
+
+# Checking feature importance 
+
+control <- trainControl(method="repeatedcv", number=10, repeats=3)
+
+# Train the model
+
+model <- train(class~., data=train, method="knn", preProcess="scale", trControl=control)
+
+# Estimating variable importance
+
+importance <- varImp(model, scale=FALSE)
+
+# Summarizing importance
+
+print(importance)
+
+# plot importance
+
+plot(importance)
+
+# Checking which K value fits bets for our dataset.
+for (k in c(1:10)) {
+  # Creating K-Nearest Neighbor Model...
+  knn_model <- knn(train = train_features[-10][-1],test = test_features[-10][-1], cl = train$class, k = k)
+  # Confusion Matrix of KNN...
+  cm <- table(test$class, knn_model)
+  print(cm)
+  
+  # Accuracy of KNN..
+  misClassError <- mean(knn_model != test$class)
+  precision <- cm[2,2]/(cm[2,2]+cm[2,1])
+  recall <- cm[2,2]/(cm[2,2]+cm[1,2])
+  print(paste('k = ',k,' Accuracy =', 1-misClassError, ' precision = ',precision, ' recall = ', recall))
+} 
+
+# Creating K-Nearest Neighbor Model
+
+knn_model <- knn(train = train_features[-10][-1],test = test_features[-10][-1], cl = train$class, k = 5 )
+
+# Confusion Matrix of KNN.
+
+cm <- table(test$class, knn_model)
+
+# Accuracy of KNN..
+precision <- cm[2,2]/(cm[2,2]+cm[2,1])
+recall <- cm[2,2]/(cm[2,2]+cm[1,2])
+print(paste(' Accuracy =', 1-misClassError, ' precision = ',precision, ' recall = ', recall))
+
+# Using feature selection technique has improved accuracy of the model significantly 
+# in comparison Reproduction of the original study.
+# Further more precision and recall have a high positive change 
