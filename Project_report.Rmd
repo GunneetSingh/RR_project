@@ -1,0 +1,504 @@
+---
+title: "Project_report"
+author: "Elbrus Gasimov, Gunneet Singh"
+date: '2022-09-06'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Reproduction of the original study
+
+
+### Installing necessary libraries
+
+
+```{r message=FALSE, warning=FALSE}
+#install.packages('e1071')
+library(e1071)
+#install.packages('caTools')
+library(caTools)
+#install.packages('class')
+library(class)
+library(ggplot2)
+```
+
+
+### Loading the dataset
+
+
+```{r}
+data <- read.csv(file.choose(), header = FALSE)
+```
+
+
+### Adding headers to the columns
+
+                    
+```{r}
+colnames(data) <- c('sample_code_number', 
+                    'clump_Thickness', 
+                    'uniformity_of_cell_size',
+                    'uniformity_of_cell_shape',
+                    'marginal_adhesion',
+                    'single_epithelial_cell_size',
+                    'bare_nuclei',
+                    'bland_chromatin',
+                    'normal_nucleoli',
+                    'mitoses',
+                    'class')
+```
+
+
+### Overview of the data
+
+
+```{r}
+# Checking shape of data
+dim(data)
+
+# Checking structure of dataset
+str(data)
+```
+
+
+The dataset has 699 observations for 11 different features. Out of the total 11 variables, only the seventh column named bare_nuclei has character type values, while all others have integers.
+
+
+### Distribution of "class" variable
+
+
+```{r}
+ggplot(data = data, aes(class, fill = factor(class)))+
+  geom_bar() + xlab("diagnosis")
+```
+
+
+
+### Data pre-processing
+
+```{r}
+# Converting bare_nuclei from character datatype to integer
+
+data$bare_nuclei <- as.integer(data$bare_nuclei)
+```
+
+
+Before going further, we have to remove the missing values present in our data for further analysis.
+
+
+```{r}
+# Dropping all NA values
+
+data <- na.omit(data)
+
+dim(data)
+```
+
+
+Clearly, there were missing values in 16 rows, which were removed from the dataset for further analysis.
+
+
+### Building models
+
+#### Train-Test data split
+
+```{r}
+set.seed(123)
+
+split <- sample.split(data)   # random sampling of the data
+
+train <- subset(data, split == 'TRUE')
+test <- subset(data, split == 'FALSE')
+```
+
+
+#### Creating K-Nearest Neighbor model
+
+
+We do not need the eleventh variable named Class for building the models
+
+
+```{r}
+knn_model <- knn(train = train[-11],test = test[-11], cl = train$class, k = 3)
+```
+
+
+#### Confusion Matrix of KNN
+
+
+```{r}
+cm1 <- table(test$class, knn_model)
+cm1
+```
+
+
+#### Checking the accuracy of KNN
+
+
+```{r}
+misClassError <- mean(knn_model != test$class)
+print(paste('Accuracy =', 1-misClassError))
+```
+
+
+Surely, the accuracy is not good enough here for any sort of predictions or further analysis. However, what is even more interesting is the fact that in the research paper, the accuracy corresponding to KNN model is around 97% which is significantly higher than what we got here.
+
+
+The reason behind this stark difference has to be the unclarity in the article regarding various things including the exact proportion chosen for the modeling purposes, or any additional tuning of the parameters of the algorithm.
+
+
+#### Naive Bayes Algorithm
+
+
+```{r}
+nb_model <- naiveBayes(class ~ ., data = train)
+nb_model
+```
+
+
+#### Generating the predicts based on NB model
+
+
+```{r}
+prediction <- predict(nb_model, newdata = test[-11])
+```
+
+
+#### Confusion matrix based on the "predictions"
+
+
+```{r}
+cm2 <- table(test$class, prediction)
+cm2
+```
+
+
+#### Assessing the accuracy of Naive Bayes
+
+
+```{r}
+correct_values <- cm2[1,1]+cm2[2,2]
+total_values <- correct_values + cm2[1,2] + cm2[2,1]
+
+acc <- correct_values/total_values
+print(paste('Accuracy = ', acc))
+```
+
+
+Interestingly enough, the accuracy of the NB algorithm comes out to be really good. Even though it is not the same as that in the original study, it surely is very close to the actual number. This means that the unavailability of proper description about the use of algorithm does not have a huge implication here in comparison with the KNN model.
+
+
+## Replication of above with some improvements
+
+### Loading the necessary Packages 
+
+
+```{r message=FALSE, warning=FALSE}
+#install.packages('caTools')
+#install.packages('class')
+#install.packages('ggplot2')
+#install.packages('reshape2')
+#install.packages('caret')
+#install.packages('mlbench')
+#install.packages('e1071')
+library(caTools)
+library(class)
+library(ggplot2)
+library(reshape2)
+library(caret)
+library(mlbench)
+library(e1071)
+```
+
+
+### Loading the dataset and cheking the few rows.
+
+
+```{r}
+datarepl <- read.csv(file.choose())
+
+head(datarepl)        # Checking first few rows
+```
+
+
+The data looks a bit more complex with no clear headers assigned lets make handle it first.
+
+
+### Adding headers to data to increase readability.
+
+
+```{r}
+colnames(datarepl) <- c('sample_code_number', 
+                    'clump_Thickness', 
+                    'uniformity_of_cell_size',
+                    'uniformity_of_cell_shape',
+                    'marginal_adhesion',
+                    'single_epithelial_cell_size',
+                    'bare_nuclei',
+                    'bland_chromatin',
+                    'normal_nucleoli',
+                    'mitoses',
+                    'class')
+```
+
+
+### Overview of the dataset
+
+
+```{r}
+# checking structure of dataset
+summary(datarepl)
+```
+
+
+### Plotting the Class variable to see the distribution. 
+
+
+```{r}
+ggplot(data = datarepl, aes(class, fill = factor(class)))+
+  geom_bar() + xlab("Diagnosis") + geom_text(aes(label = ..count..), stat = 'count', vjust = -0.4)
+```
+
+
+So Benign cases is dominant here with around 65.5% which is 458 cases in total Malignant class is second with 34,5 % and in numbers 241 cases 
+
+
+### Data Pre-processing
+
+#### Converting bare_nuclei from character datatype to int.
+
+
+```{r}
+datarepl$bare_nuclei <- as.integer(datarepl$bare_nuclei)
+```
+
+
+Some NA values have been inserted while changing the class of the above variable, which needs to be dropped before further analysis.
+
+
+#### Dropping all na values 
+
+
+```{r}
+datarepl <- na.omit(datarepl)
+```
+
+
+#### Changing class variable to binary 0 and 1 
+
+
+```{r}
+datarepl$class <- ifelse(datarepl$class == 2,0,1)
+```
+
+
+### Building models
+
+
+#### Doing train test split
+
+
+```{r}
+set.seed(100)
+split1 <- sample.split(datarepl)
+train1 <- subset(datarepl, split == 'TRUE')
+train_features1 <- train1[-11]
+test1 <- subset(datarepl, split == 'FALSE')
+test_features1 <- test1[-11]
+```
+
+
+#### KNN model
+
+#### Feature importance check
+
+
+```{r}
+control <- trainControl(method="repeatedcv", number=10, repeats=3)
+```
+
+
+#### Training the model
+
+
+```{r}
+model1 <- train(class~., data=train1, method="knn", preProcess="scale", trControl=control)
+```
+
+
+#### Estimating variable importance
+
+
+```{r}
+importance <- varImp(model1, scale=FALSE)
+```
+
+
+#### Summarizing importance
+
+
+```{r}
+print(importance)
+```
+
+
+#### Plotting importance
+
+
+```{r}
+plot(importance)
+```
+
+
+#### Checking which K value fits bets for our dataset.
+
+
+```{r}
+for (k in c(1:10)) {
+  # Creating K-Nearest Neighbor Model...
+  knn_model1 <- knn(train = train_features1[-10][-1],test = test_features1[-10][-1], cl = train1$class, k = k)
+  # Confusion Matrix of KNN...
+  cm3 <- table(test1$class, knn_model1)
+  print(cm3)
+  
+  # Accuracy of KNN..
+  misClassError <- mean(knn_model1 != test1$class)
+  precision <- cm3[2,2]/(cm3[2,2]+cm3[2,1])
+  recall <- cm3[2,2]/(cm3[2,2]+cm3[1,2])
+  print(paste('k = ',k,' Accuracy =', 1-misClassError, ' precision = ',precision, ' recall = ', recall))
+}
+```
+
+
+#### Creating K-Nearest Neighbor Model
+
+
+```{r}
+knn_model1 <- knn(train = train_features1[-10][-1],test = test_features1[-10][-1], cl = train1$class, k = 5 )
+```
+
+
+#### Confusion Matrix of KNN
+
+
+```{r}
+cm4 <- table(test1$class, knn_model1)
+cm4
+```
+
+
+#### Accuracy of KNN
+
+
+```{r}
+precision <- cm4[2,2]/(cm4[2,2]+cm4[2,1])
+recall <- cm4[2,2]/(cm4[2,2]+cm4[1,2])
+print(paste(' Accuracy =', 1-misClassError, ' precision = ',precision, ' recall = ', recall))
+```
+
+
+Using feature selection technique has improved accuracy of the model significantly in comparison Reproduction of the original study.
+
+Further more precision and recall have a high positive change,
+
+
+#### Using Naive Bayes Algorithm
+
+
+```{r}
+nb_model1 <- naiveBayes(class ~ ., data = train1)
+nb_model1
+```
+
+
+#### Generating predictions
+
+
+```{r}
+prediction1 <- predict(nb_model1, newdata = test1[-11])
+```
+
+
+#### Confusion matrix for NB algorithm
+
+
+```{r}
+cm5 <- table(test1$class, prediction1)
+cm5
+```
+
+
+#### Accuracy of Naive Bayes
+
+
+```{r}
+correct_values <- cm5[1,1]+cm5[2,2]
+total_values <- correct_values + cm5[1,2] + cm5[2,1]
+
+acc <- correct_values/total_values
+print(paste('Accuracy = ', acc))
+```
+
+
+The accuracy is around 97 % which is almost equal to the one in Original Study.
+
+
+#### Applying Logistic Regression Model
+
+
+```{r}
+log_model <- glm(class ~ ., data = train1, family = 'binomial')
+
+summary(log_model)
+```
+
+
+#### Generating the Prediction for the model
+
+
+```{r}
+predict_reg <- predict(log_model, 
+                       test_features1, type = "response")
+predict_reg  
+
+predict_reg <- ifelse(predict_reg >0.5, 1, 0)
+```
+
+
+#### Confusion matrix
+
+
+```{r}
+table(test1$class, predict_reg)
+```
+
+
+#### Finalizing Accuracy 
+
+
+```{r}
+missing_classerr <- mean(predict_reg != test1$class)
+print(paste('Accuracy =', 1 - missing_classerr))
+```
+
+
+The accuracy is around 98 % which is high and was not utilized in the original study
+
+
+### Areas of improvement
+
+* Used Cross Validation Techniques and Feature selection techniques which improved our results drastically.
+
+* For KNN model, not only accuracy improved but precision and recall took a major leap.
+
+* It is also suggested to use Logistic regression for this problem as that ML model also give good stats in this case.
+
+* Better if we use KNN model here with features selected for it.
+
+* Visualization improved
+
+
